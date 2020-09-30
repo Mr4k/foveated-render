@@ -9,7 +9,7 @@
     </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
         uniform float time;
-        uniform vec2 resolution;
+        const vec2 iResolution = vec2(500, 228);
 
         /*void main()	{
             float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
@@ -26,7 +26,7 @@
         const int NUM_STEPS = 8;
         const float PI	 	= 3.141592;
         const float EPSILON	= 1e-3;
-        #define EPSILON_NRM (0.1 / resolution.x)
+        #define EPSILON_NRM (0.1 / iResolution.x)
         #define AA
 
         // sea
@@ -174,9 +174,9 @@
         }
 
         vec3 getPixel(in vec2 coord, float time) {    
-            vec2 uv = coord / resolution.xy;
+            vec2 uv = coord / iResolution.xy;
             uv = uv * 2.0 - 1.0;
-            uv.x *= resolution.x / resolution.y;    
+            uv.x *= iResolution.x / iResolution.y;    
                 
             // ray
             vec3 ang = vec3(sin(time*3.0)*0.1,sin(time)*0.2+0.3,time);    
@@ -240,7 +240,7 @@
         var scene = new THREE.Scene();
 
         var uniforms = {
-            time: { type: "f", value: 1.0 },
+            time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() }
         };
 
@@ -255,7 +255,7 @@
         scene.add( mesh );
 
         var renderer = new THREE.WebGLRenderer({});
-        renderer.setSize( 500, 228 );
+        renderer.setSize( 128, 128 );
         container.appendChild(renderer.domElement);
 
         uniforms.resolution.value.x = parent.clientWidth;
@@ -272,7 +272,7 @@
         function render() {
             var elapsedMilliseconds = Date.now() - startTime;
             var elapsedSeconds = elapsedMilliseconds / 1000.;
-            uniforms.time.value = 60. * elapsedSeconds;
+            uniforms.time.value = elapsedSeconds;
             renderer.render( scene, camera );
         }
     </script>
