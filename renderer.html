@@ -1,5 +1,17 @@
 <!-- Code stolen from https://iwearshorts.com/blog/simple-shader-with-threejs/ !-->
 <head>
+    <script id="fragmentShader" type="x-shader/x-fragment">
+        uniform float time;
+        const vec2 iResolution = vec2(512, 228);
+        const vec2 iIntermediateResolution = vec2(128, 128);
+        uniform sampler2D dstMap;
+        uniform sampler2D intermediate;
+
+        void main()	{
+            vec2 coords = texture(dstMap, gl_FragCoord.xy / iResolution).xy;
+            gl_FragColor = texture(intermediate, coords);
+        }
+    </script>
     <script id="vertexShader" type="x-shader/x-vertex">
         uniform float time;
         uniform vec2 resolution;
@@ -7,15 +19,17 @@
             gl_Position = vec4( position, 1.0 );
         }
     </script>
-    <script id="fragmentShader" type="x-shader/x-fragment">
+    <script id="intfragmentShader" type="x-shader/x-fragment">
         uniform float time;
-        const vec2 iResolution = vec2(128, 128);
+        const vec2 iIntResolution = vec2(128, 128);
+        const vec2 iResolution = vec2(512, 228);
         uniform sampler2D dstMap;
         uniform sampler2D srcMap;
 
         /*void main()	{
-            float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
-            float y = mod(time + gl_FragCoord.y, 20.) < 10. ? 1. : 0.;
+            vec2 fragCoord = texture(srcMap, gl_FragCoord.xy / iIntResolution).xy * iResolution;
+            float x = mod(time + fragCoord.x, 20.) < 10. ? 1. : 0.;
+            float y = mod(time + fragCoord.y, 20.) < 10. ? 1. : 0.;
             gl_FragColor = vec4(vec3(min(x, y)), 1.);
         }*/
 
@@ -203,7 +217,7 @@
         // main
         void main() {
             float time = time * 0.3;
-            vec2 fragCoord = texture(srcMap, gl_FragCoord.xy / iResolution).xy * iResolution;
+            vec2 fragCoord = texture(srcMap, gl_FragCoord.xy / iIntResolution).xy * iResolution;
             
         #ifdef AA
             vec3 color = vec3(0.0);
@@ -219,8 +233,9 @@
         #endif
             
             // post
-            vec4 fragColor = vec4(pow(color, vec3(0.65, 0.65, 0.65)), 1.0);
-            gl_FragColor = fragColor;
+            gl_FragColor = vec4(fragCoord.xy / iResolution, 1, 1);
+            //vec4 fragColor = vec4(pow(color, vec3(0.65, 0.65, 0.65)), 1.0);
+            //gl_FragColor = fragColor;
         }
     </script>
 </head>
@@ -239,17 +254,29 @@
         var camera = new THREE.Camera();
         camera.position.z = 1;
 
-        var scene = new THREE.Scene();
+        const renderTarget = new THREE.WebGLRenderTarget(128, 128);
+        renderTarget.texture.minFilter = THREE.NearestFilter;
+        renderTarget.texture.magFilter = THREE.NearestFilter;
 
         const srcMapTex = THREE.ImageUtils.loadTexture( "src_map.png" );
         srcMapTex.minFilter = THREE.NearestFilter;
         srcMapTex.magFilter = THREE.NearestFilter;
 
+        const dstMapTex = THREE.ImageUtils.loadTexture( "dst_map.png" ) 
+        dstMapTex.minFilter = THREE.NearestFilter;
+        dstMapTex.magFilter = THREE.NearestFilter;
+
+        /*
+        * Set up the final scene
+        */
+
+        var scene = new THREE.Scene();
+
         var uniforms = {
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
-            dstMap: { type: "t", value: THREE.ImageUtils.loadTexture( "dst_map.png" ) },
-            srcMap: { type: "t", value: srcMapTex }
+            dstMap: { type: "t", value: dstMapTex },
+            intermediate: { type: "t", value: renderTarget.texture },
         };
 
         var material = new THREE.ShaderMaterial( {
@@ -259,8 +286,28 @@
         });
 
         var mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), material );
-
         scene.add( mesh );
+
+        /*
+        * Set up the intermediate render target
+        */
+
+        var rtScene = new THREE.Scene();
+
+        var rtUniforms = {
+            time: { type: "f", value: 0 },
+            resolution: { type: "v2", value: new THREE.Vector2() },
+            srcMap: { type: "t", value: srcMapTex },
+        };
+
+        var rtMaterial = new THREE.ShaderMaterial( {
+            uniforms: rtUniforms,
+            vertexShader: document.getElementById( 'vertexShader' ).innerText,
+            fragmentShader: document.getElementById( 'intfragmentShader' ).innerText
+        });
+
+        var rtMesh = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), rtMaterial );
+        rtScene.add( rtMesh );
 
         var renderer = new THREE.WebGLRenderer({});
         renderer.setSize( 128, 128 );
@@ -280,7 +327,14 @@
         function render() {
             var elapsedMilliseconds = Date.now() - startTime;
             var elapsedSeconds = elapsedMilliseconds / 1000.;
-            uniforms.time.value = elapsedSeconds;
+            rtUniforms.time.value = elapsedSeconds;
+
+            renderer.setRenderTarget(renderTarget);
+            renderer.setSize( 128, 128 );
+            renderer.render( rtScene, camera );
+            renderer.setRenderTarget(null);
+
+            renderer.setSize( 512, 228 );
             renderer.render( scene, camera );
         }
     </script>

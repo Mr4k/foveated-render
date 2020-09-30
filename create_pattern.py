@@ -56,7 +56,6 @@ distances, indexes = kdt.query(source_pixels, k = 2)
 # point is directly past another point in the same direction)
 sample_image_x_coords = (indexes[:, 0] % OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE
 sample_image_y_coords = (indexes[:, 0] // OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE
-print(np.max(sample_image_y_coords))
 
 dst_pix_map = np.reshape(np.column_stack((sample_image_x_coords, sample_image_y_coords)),
  (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1))
@@ -79,6 +78,14 @@ plt.show()
 
 plt.imshow(dst_pix_map)
 plt.show()
+
+print('test')
+d = dst_pix_map[0,1][0:2] * OUT_IMAGE_SIZE
+print(src_pix_map[int(d[0]), int(d[1])][0:2] * OUT_IMAGE_SIZE)
+dst_pix_map = np.swapaxes(dst_pix_map, 1, 0)
+d = dst_pix_map[0,1][0:2] * OUT_IMAGE_SIZE
+print(src_pix_map[int(d[0]), int(d[1])][0:2] * OUT_IMAGE_SIZE)
+#print(src_pix_map[0,0][:2] * (512, 228))
 
 src_map = Image.fromarray(np.uint8(np.clip(src_pix_map, 0, 1)*255))
 src_map.save("src_map.png")
