@@ -1,6 +1,8 @@
 import matplotlib
 matplotlib.use("TkAgg")
 
+from PIL import Image
+
 import matplotlib.pyplot as plt
 
 import numpy as np
@@ -60,6 +62,7 @@ dst_pix_map = np.reshape(np.column_stack((sample_image_x_coords, sample_image_y_
  (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1))
 
 dst_pix_map = np.dstack((dst_pix_map, np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
+dst_pix_map = np.swapaxes(dst_pix_map, 1, 0)
 
 print(dst_pix_map.shape)
 print(dst_pix_map[0, 0])
@@ -76,3 +79,9 @@ plt.show()
 
 plt.imshow(dst_pix_map)
 plt.show()
+
+src_map = Image.fromarray(np.uint8(np.clip(src_pix_map, 0, 1)*255))
+src_map.save("src_map.png")
+
+dst_map = Image.fromarray(np.uint8(np.clip(dst_pix_map, 0, 1)*255))
+dst_map.save("dst_map.png")

@@ -9,7 +9,9 @@
     </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
         uniform float time;
-        const vec2 iResolution = vec2(500, 228);
+        const vec2 iResolution = vec2(128, 128);
+        uniform sampler2D dstMap;
+        uniform sampler2D srcMap;
 
         /*void main()	{
             float x = mod(time + gl_FragCoord.x, 20.) < 10. ? 1. : 0.;
@@ -201,7 +203,7 @@
         // main
         void main() {
             float time = time * 0.3;
-            vec2 fragCoord = gl_FragCoord.xy;
+            vec2 fragCoord = texture(srcMap, gl_FragCoord.xy / iResolution).xy * iResolution;
             
         #ifdef AA
             vec3 color = vec3(0.0);
@@ -239,9 +241,15 @@
 
         var scene = new THREE.Scene();
 
+        const srcMapTex = THREE.ImageUtils.loadTexture( "src_map.png" );
+        srcMapTex.minFilter = THREE.NearestFilter;
+        srcMapTex.magFilter = THREE.NearestFilter;
+
         var uniforms = {
             time: { type: "f", value: 0 },
-            resolution: { type: "v2", value: new THREE.Vector2() }
+            resolution: { type: "v2", value: new THREE.Vector2() },
+            dstMap: { type: "t", value: THREE.ImageUtils.loadTexture( "dst_map.png" ) },
+            srcMap: { type: "t", value: srcMapTex }
         };
 
         var material = new THREE.ShaderMaterial( {
