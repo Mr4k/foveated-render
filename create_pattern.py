@@ -18,7 +18,7 @@ IN_IMAGE_HEIGHT = 228
 OUT_IMAGE_SIZE = 128
 NUM_PIXELS_TO_DRAW = OUT_IMAGE_SIZE * OUT_IMAGE_SIZE
 
-rng = default_rng()
+rng = default_rng(10)
 vals = rng.standard_normal((2, NUM_PIXELS_TO_DRAW))
 
 x_scale = 100
@@ -139,6 +139,7 @@ plt.show()
 old_dst_map = dst_pix_map
 
 print('pix_src', src_pix_map)
+#cv2.imwrite("src_map.png", cv2.resize((src_pix_map * 255).astype(np.uint8), (512,512), interpolation=cv2.INTER_NEAREST))
 cv2.imwrite("src_map.png", (src_pix_map * 255).astype(np.uint8))
 
 cv2.imwrite("dst_map.png", (dst_pix_map).astype(np.uint8))
@@ -155,12 +156,22 @@ plt.show()
 dst_pix_map = dst_pix_map.astype(np.uint16)
 #dst_pix_map = np.float64(dst_pix_map * 32768)/32768
 im = np.zeros((228, 512, 3))
-for i in range(3):
-    for j in range(3):
+for i in range(100,102):
+    for j in range(308, 310):
         d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
         im[i,j][0:2] = src_pix_map[
             int(d // OUT_IMAGE_SIZE),
             int(d % OUT_IMAGE_SIZE)][0:2]
-        print(i, j, d)
+        print('-----------')
+        print(i, j, int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE), d, im[i,j][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE)][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE) - 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE) + 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE) + 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE) - 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE) + 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE) - 1][0:2])
+        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE)][0:2])
+        print('-----------')
 plt.imshow(im)
 plt.show()
