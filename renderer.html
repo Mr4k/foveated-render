@@ -12,7 +12,8 @@
             coords = vec2(coords.x, coords.y);
             gl_FragColor = texture(intermediate, coords);
             //gl_FragColor = vec4(coords.xy, 0, 0);
-            //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0.5, 1);
+            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);
+            //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0, 1);
         }
     </script>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -279,7 +280,7 @@
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
             dstMap: { type: "t", value: dstMapTex },
-            intermediate: { type: "t", value: renderTarget.texture },
+            intermediate: { type: "t", value: srcMapTex },
         };
 
         var material = new THREE.ShaderMaterial( {

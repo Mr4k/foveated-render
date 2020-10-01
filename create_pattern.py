@@ -10,6 +10,8 @@ from numpy.random import default_rng
 
 from sklearn.neighbors import KDTree
 
+import cv2
+
 IN_IMAGE_WIDTH = 512
 IN_IMAGE_HEIGHT = 228
 
@@ -65,9 +67,12 @@ print("")
 # there are definitely bad cases here (such as when one 
 # point is directly past another point in the same direction)
 
-index_map = np.reshape(indexes[:, 0], (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1))
+index_map = np.uint16(np.reshape(indexes[:, 0], (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1)))
+print('dtype', index_map.dtype)
 
-dst_pix_map = np.dstack(((index_map // OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE, (index_map % OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE, np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
+dst_pix_map = np.dstack((np.right_shift(index_map, 16), np.bitwise_and(index_map, 65535), np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
+print('hello')
+print(dst_pix_map)
 dst_pix_map = np.swapaxes(dst_pix_map, 0, 1)
 
 print('???', dst_pix_map[0, 0])
@@ -94,7 +99,7 @@ plt.show()
 
 print('test')
 d = dst_pix_map[0,10]
-print('attempt index', d)
+"""print('attempt index', d)
 print('closest to 0, 10', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
 
 d = dst_pix_map[0,2]
@@ -109,18 +114,49 @@ print('closest to 105, 0', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OU
 
 d = dst_pix_map[105, 200]
 print('closest to 105, 200', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
+"""
 
 # test that the decoding works
+print(dst_pix_map.dtype)
+dst_pix_map = dst_pix_map.astype(np.uint16)
+#dst_pix_map = np.float64(dst_pix_map * 32768)/32768
 im = np.zeros((228, 512, 3))
 for i in range(228):
     for j in range(512):
-        d = dst_pix_map[i, j]
-        im[i,j][0:2] = src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2]
+        a = dst_pix_map[i, j][0]
+        a = a << 16
+        d = a | dst_pix_map[i, j][1]
+        im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
 plt.imshow(im)
 plt.show()
 
-src_map = Image.fromarray(np.uint8(np.clip(src_pix_map, 0, 1)*255))
-src_map.save("src_map.png")
+old_dst_map = dst_pix_map
 
-dst_map = Image.fromarray(np.uint8(np.clip(dst_pix_map, 0, 1)*255))
-dst_map.save("dst_map.png")
+print('pix_src', src_pix_map)
+cv2.imwrite("src_map.png", (src_pix_map * 255).astype(np.uint8))
+
+cv2.imwrite("dst_map.png", (dst_pix_map).astype(np.uint16))
+
+import cv2
+src_pix_map = cv2.imread("src_map.png") / 255.0
+dst_pix_map = cv2.imread("dst_map.png", cv2.IMREAD_UNCHANGED)
+print('typeee??', dst_pix_map.dtype)
+
+plt.imshow(src_pix_map)
+plt.show()
+
+# test that the decoding works
+print(dst_pix_map.dtype)
+dst_pix_map = dst_pix_map.astype(np.uint16)
+#dst_pix_map = np.float64(dst_pix_map * 32768)/32768
+im = np.zeros((228, 512, 3))
+for i in range(228):
+    for j in range(512):
+        a = dst_pix_map[i, j][0]
+        a = a << 16
+        d = a | dst_pix_map[i, j][1]
+        print(int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE))
+        im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
+print(im)
+plt.imshow(im)
+plt.show()
