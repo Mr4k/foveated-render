@@ -70,7 +70,13 @@ print("")
 index_map = np.uint16(np.reshape(indexes[:, 0], (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1)))
 print('dtype', index_map.dtype)
 
-dst_pix_map = np.dstack((np.right_shift(index_map, 16), np.bitwise_and(index_map, 65535), np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
+# channels are in order of least significant bit
+# could make this much cleaner... (but the rest of the code is pretty bad rn)
+channel1 = np.bitwise_and(index_map, 255)
+channel2 = np.bitwise_and(np.right_shift(index_map, 8), 255)
+channel3 = np.bitwise_and(np.right_shift(index_map, 16), 255)
+
+dst_pix_map = np.dstack((channel1, channel2, channel3))
 print('hello')
 print(dst_pix_map)
 dst_pix_map = np.swapaxes(dst_pix_map, 0, 1)
@@ -125,7 +131,7 @@ for i in range(228):
     for j in range(512):
         a = dst_pix_map[i, j][0]
         a = a << 16
-        d = a | dst_pix_map[i, j][1]
+        d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
         im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
 plt.imshow(im)
 plt.show()
@@ -135,7 +141,7 @@ old_dst_map = dst_pix_map
 print('pix_src', src_pix_map)
 cv2.imwrite("src_map.png", (src_pix_map * 255).astype(np.uint8))
 
-cv2.imwrite("dst_map.png", (dst_pix_map).astype(np.uint16))
+cv2.imwrite("dst_map.png", (dst_pix_map).astype(np.uint8))
 
 import cv2
 src_pix_map = cv2.imread("src_map.png") / 255.0
@@ -146,17 +152,12 @@ plt.imshow(src_pix_map)
 plt.show()
 
 # test that the decoding works
-print(dst_pix_map.dtype)
 dst_pix_map = dst_pix_map.astype(np.uint16)
 #dst_pix_map = np.float64(dst_pix_map * 32768)/32768
 im = np.zeros((228, 512, 3))
 for i in range(228):
     for j in range(512):
-        a = dst_pix_map[i, j][0]
-        a = a << 16
-        d = a | dst_pix_map[i, j][1]
-        print(int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE))
+        d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
         im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
-print(im)
 plt.imshow(im)
 plt.show()
