@@ -11,17 +11,9 @@
             highp uvec3 bitParts = texture(dstMap, gl_FragCoord.xy / iResolution).xyz;
             highp uint x = bitParts.b;
             highp uint y = bitParts.g;
-            highp ivec2 coords = ivec2(int(y), 128 - int(x));
+            highp ivec2 coords = ivec2(int(y), 127 - int(x));
             
             gl_FragColor = texelFetch(intermediate, coords, 0);
-            /*if (index == 6744u) {
-                gl_FragColor = vec4(1, 0, 0, 1);
-            } else {
-                gl_FragColor = vec4(0, 0, 0, 0);
-            }*/
-            //gl_FragColor = vec4(coords.xy / 128.0, 0, 0);
-            //gl_FragColor = texelFetch(intermediate, gl_FragCoord.xy);
-            //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0, 1);
         }
     </script>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -293,7 +285,7 @@
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
             dstMap: { type: "t", value: dstMapTex },
-            intermediate: { type: "t", value: srcMapTex },
+            intermediate: { type: "t", value: renderTarget.texture },
         };
 
         var material = new THREE.ShaderMaterial( {
