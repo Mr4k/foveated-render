@@ -9,7 +9,10 @@
 
         void main()	{
             vec2 coords = texture(dstMap, gl_FragCoord.xy / iResolution).xy;
+            coords = vec2(coords.x, coords.y);
             gl_FragColor = texture(intermediate, coords);
+            //gl_FragColor = vec4(coords.xy, 0, 0);
+            //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0.5, 1);
         }
     </script>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -233,7 +236,7 @@
         #endif
             
             // post
-            gl_FragColor = vec4(fragCoord.xy / iResolution, 1, 1);
+            gl_FragColor = vec4(fragCoord / iResolution, 0, 1);
             //vec4 fragColor = vec4(pow(color, vec3(0.65, 0.65, 0.65)), 1.0);
             //gl_FragColor = fragColor;
         }

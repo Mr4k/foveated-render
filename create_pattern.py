@@ -28,6 +28,7 @@ vals[1] += IN_IMAGE_HEIGHT / 2
 # bad way of dealing with out of bounds pixels
 vals[0] %= IN_IMAGE_WIDTH
 vals[1] %= IN_IMAGE_HEIGHT
+print('max?', np.max(vals[0]))
 
 plt.scatter(x = vals[0], y = vals[1], s = 1) 
 plt.xlim(0, IN_IMAGE_WIDTH)
@@ -49,29 +50,41 @@ xs = np.kron(xs, np.ones(IN_IMAGE_HEIGHT))
 ys = np.tile(ys, IN_IMAGE_WIDTH)
 source_pixels = np.column_stack((xs, ys))
 
-distances, indexes = kdt.query(source_pixels, k = 2)
+print(source_pixels)
+distances, indexes = kdt.query(source_pixels, k = 1)
+print(source_pixels[10])
+print('closests to 0, 10', vals[:, indexes[10]], '@ index', indexes[10])
+print(source_pixels[2])
+print('closests to 0, 2', vals[:, indexes[2]], '@ index', indexes[2])
+print(source_pixels[0])
+print('closests to 0, 0', vals[:, indexes[0]], '@ index', indexes[0])
+print("")
+print("")
 
 # for now just weigh neighbor contributions by distance
 # there are definitely bad cases here (such as when one 
 # point is directly past another point in the same direction)
-sample_image_x_coords = (indexes[:, 0] % OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE
-sample_image_y_coords = (indexes[:, 0] // OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE
 
-dst_pix_map = np.reshape(np.column_stack((sample_image_x_coords, sample_image_y_coords)),
- (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1))
+index_map = np.reshape(indexes[:, 0], (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT, -1))
 
-dst_pix_map = np.dstack((dst_pix_map, np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
-dst_pix_map = np.swapaxes(dst_pix_map, 1, 0)
+dst_pix_map = np.dstack(((index_map // OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE, (index_map % OUT_IMAGE_SIZE) / OUT_IMAGE_SIZE, np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))))
+dst_pix_map = np.swapaxes(dst_pix_map, 0, 1)
 
-print(dst_pix_map.shape)
-print(dst_pix_map[0, 0])
+print('???', dst_pix_map[0, 0])
+print('???', dst_pix_map[0, 2])
+print('???', dst_pix_map[0, 10])
+
+print('max?', np.max(vals[0]))
+#vals[0] /= IN_IMAGE_WIDTH
+#vals[1] /= IN_IMAGE_HEIGHT
+print(np.swapaxes(vals, 0, 1))
 
 vals[0] /= IN_IMAGE_WIDTH
 vals[1] /= IN_IMAGE_HEIGHT
 
-src_pix_map = np.reshape(vals, (OUT_IMAGE_SIZE, OUT_IMAGE_SIZE, -1))
-print(src_pix_map.shape)
+src_pix_map = np.reshape(np.swapaxes(vals, 0, 1), (OUT_IMAGE_SIZE, OUT_IMAGE_SIZE, -1))
 src_pix_map = np.dstack((src_pix_map, np.zeros((OUT_IMAGE_SIZE, OUT_IMAGE_SIZE))))
+print('max?', np.max(src_pix_map))
 
 plt.imshow(src_pix_map)
 plt.show()
@@ -80,12 +93,31 @@ plt.imshow(dst_pix_map)
 plt.show()
 
 print('test')
-d = dst_pix_map[0,1][0:2] * OUT_IMAGE_SIZE
-print(src_pix_map[int(d[0]), int(d[1])][0:2] * OUT_IMAGE_SIZE)
-dst_pix_map = np.swapaxes(dst_pix_map, 1, 0)
-d = dst_pix_map[0,1][0:2] * OUT_IMAGE_SIZE
-print(src_pix_map[int(d[0]), int(d[1])][0:2] * OUT_IMAGE_SIZE)
+d = dst_pix_map[0,10]
+print('attempt index', d)
+print('closest to 0, 10', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
+
+d = dst_pix_map[0,2]
+print('closest to 0, 2', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
+
+d = dst_pix_map[0,0]
+print('closest to 0, 0', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
+
+d = dst_pix_map[105,0]
+print('closest to 105, 0', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
 #print(src_pix_map[0,0][:2] * (512, 228))
+
+d = dst_pix_map[105, 200]
+print('closest to 105, 200', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
+
+# test that the decoding works
+im = np.zeros((228, 512, 3))
+for i in range(228):
+    for j in range(512):
+        d = dst_pix_map[i, j]
+        im[i,j][0:2] = src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2]
+plt.imshow(im)
+plt.show()
 
 src_map = Image.fromarray(np.uint8(np.clip(src_pix_map, 0, 1)*255))
 src_map.save("src_map.png")
