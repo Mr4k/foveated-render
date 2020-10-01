@@ -3,16 +3,18 @@
     <script id="fragmentShader" type="x-shader/x-fragment">
         uniform float time;
         const vec2 iResolution = vec2(512, 228);
-        const vec2 iIntermediateResolution = vec2(128, 128);
-        uniform sampler2D dstMap;
-        uniform sampler2D intermediate;
+        const highp uvec2 iIntermediateResolution = uvec2(128, 128);
+        uniform highp usampler2D dstMap;
+        uniform highp sampler2D intermediate;
 
         void main()	{
-            vec2 coords = texture(dstMap, gl_FragCoord.xy / iResolution).xy;
-            coords = vec2(coords.x, coords.y);
-            gl_FragColor = texture(intermediate, coords);
-            //gl_FragColor = vec4(coords.xy, 0, 0);
-            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);
+            highp uvec3 bitParts = texture(dstMap, gl_FragCoord.xy / iResolution).xyz;
+            highp uint index = bitParts.b | (bitParts.g << 8) | (bitParts.r << 16);
+            highp ivec2 coords = ivec2(int(index / iIntermediateResolution.x), 
+             int(index % iIntermediateResolution.x));
+            gl_FragColor = texelFetch(intermediate, coords, 0);
+            //gl_FragColor = vec4(coords.xy / 128.0, 0, 0);
+            //gl_FragColor = texelFetch(intermediate, gl_FragCoord.xy);
             //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0, 1);
         }
     </script>
@@ -27,7 +29,6 @@
         uniform float time;
         const vec2 iIntResolution = vec2(128, 128);
         const vec2 iResolution = vec2(512, 228);
-        uniform sampler2D dstMap;
         uniform sampler2D srcMap;
 
         /*void main()	{
@@ -266,9 +267,15 @@
         srcMapTex.minFilter = THREE.NearestFilter;
         srcMapTex.magFilter = THREE.NearestFilter;
 
-        const dstMapTex = THREE.ImageUtils.loadTexture( "dst_map.png" ) 
-        dstMapTex.minFilter = THREE.NearestFilter;
-        dstMapTex.magFilter = THREE.NearestFilter;
+        const dstMapTex = THREE.ImageUtils.loadTexture( "dst_map.png", undefined, () => { 
+            dstMapTex.minFilter = THREE.NearestFilter;
+            dstMapTex.magFilter = THREE.NearestFilter;
+            dstMapTex.internalFormat = "RGB8UI";
+            dstMapTex.format = THREE.RGBIntegerFormat;
+            dstMapTex.needsUpdate = true;
+        });
+        console.log(dstMapTex.format, dstMapTex.type, THREE.RGBAFormat, THREE.UnsignedByteType)
+        //dstMapTex.type = THREE.UnsignedIntType;
 
         /*
         * Set up the final scene

@@ -155,9 +155,12 @@ plt.show()
 dst_pix_map = dst_pix_map.astype(np.uint16)
 #dst_pix_map = np.float64(dst_pix_map * 32768)/32768
 im = np.zeros((228, 512, 3))
-for i in range(228):
-    for j in range(512):
+for i in range(3):
+    for j in range(3):
         d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
-        im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
+        im[i,j][0:2] = src_pix_map[
+            int(d // OUT_IMAGE_SIZE),
+            int(d % OUT_IMAGE_SIZE)][0:2]
+        print(i, j, d)
 plt.imshow(im)
 plt.show()
