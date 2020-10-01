@@ -9,15 +9,16 @@
 
         void main()	{
             highp uvec3 bitParts = texture(dstMap, gl_FragCoord.xy / iResolution).xyz;
-            highp uint index = bitParts.b | (bitParts.g << 8) | (bitParts.r << 16);
-            highp ivec2 coords = ivec2(int(index / iIntermediateResolution.x), int(index % iIntermediateResolution.x));
+            highp uint x = bitParts.b;
+            highp uint y = bitParts.g;
+            highp ivec2 coords = ivec2(int(y), 128 - int(x));
             
             gl_FragColor = texelFetch(intermediate, coords, 0);
-            if (index == 6744u) {
+            /*if (index == 6744u) {
                 gl_FragColor = vec4(1, 0, 0, 1);
             } else {
                 gl_FragColor = vec4(0, 0, 0, 0);
-            }
+            }*/
             //gl_FragColor = vec4(coords.xy / 128.0, 0, 0);
             //gl_FragColor = texelFetch(intermediate, gl_FragCoord.xy);
             //gl_FragColor = vec4(gl_FragCoord.xy / iResolution, 0, 1);

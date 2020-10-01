@@ -72,20 +72,13 @@ print('dtype', index_map.dtype)
 
 # channels are in order of least significant bit
 # could make this much cleaner... (but the rest of the code is pretty bad rn)
-channel1 = np.bitwise_and(index_map, 255)
-channel2 = np.bitwise_and(np.right_shift(index_map, 8), 255)
-channel3 = np.bitwise_and(np.right_shift(index_map, 16), 255)
+channel1 = np.bitwise_and(index_map // OUT_IMAGE_SIZE, 255)
+channel2 = np.bitwise_and(index_map % OUT_IMAGE_SIZE, 255)
+channel3 = np.zeros(channel1.shape)
 
 dst_pix_map = np.dstack((channel1, channel2, channel3))
-print('hello')
-print(dst_pix_map)
 dst_pix_map = np.swapaxes(dst_pix_map, 0, 1)
 
-print('???', dst_pix_map[0, 0])
-print('???', dst_pix_map[0, 2])
-print('???', dst_pix_map[0, 10])
-
-print('max?', np.max(vals[0]))
 #vals[0] /= IN_IMAGE_WIDTH
 #vals[1] /= IN_IMAGE_HEIGHT
 print(np.swapaxes(vals, 0, 1))
@@ -95,7 +88,6 @@ vals[1] /= IN_IMAGE_HEIGHT
 
 src_pix_map = np.reshape(np.swapaxes(vals, 0, 1), (OUT_IMAGE_SIZE, OUT_IMAGE_SIZE, -1))
 src_pix_map = np.dstack((src_pix_map, np.zeros((OUT_IMAGE_SIZE, OUT_IMAGE_SIZE))))
-print('max?', np.max(src_pix_map))
 
 plt.imshow(src_pix_map)
 plt.show()
@@ -103,7 +95,6 @@ plt.show()
 plt.imshow(dst_pix_map)
 plt.show()
 
-print('test')
 d = dst_pix_map[0,10]
 """print('attempt index', d)
 print('closest to 0, 10', src_pix_map[int(d[0] * OUT_IMAGE_SIZE), int(d[1] * OUT_IMAGE_SIZE)][0:2] * (IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
@@ -129,10 +120,11 @@ dst_pix_map = dst_pix_map.astype(np.uint16)
 im = np.zeros((228, 512, 3))
 for i in range(228):
     for j in range(512):
-        a = dst_pix_map[i, j][0]
-        a = a << 16
-        d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
-        im[i,j][0:2] = src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE)][0:2]
+        x = dst_pix_map[i, j][0]
+        y = dst_pix_map[i, j][1]
+        #a = a << 16
+        #d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
+        im[i,j][0:2] = src_pix_map[x, y][0:2]
 plt.imshow(im)
 plt.show()
 
@@ -156,22 +148,12 @@ plt.show()
 dst_pix_map = dst_pix_map.astype(np.uint16)
 #dst_pix_map = np.float64(dst_pix_map * 32768)/32768
 im = np.zeros((228, 512, 3))
-for i in range(100,102):
-    for j in range(308, 310):
-        d = (dst_pix_map[i, j][0]) | (dst_pix_map[i, j][1] << 8) | (dst_pix_map[i, j][2] << 16) 
+for i in range(0,228):
+    for j in range(0, 512):
+        x = dst_pix_map[i, j][0]
+        y = dst_pix_map[i, j][1]
         im[i,j][0:2] = src_pix_map[
-            int(d // OUT_IMAGE_SIZE),
-            int(d % OUT_IMAGE_SIZE)][0:2]
-        print('-----------')
-        print(i, j, int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE), d, im[i,j][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE)][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE) - 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) + 1, int(d % OUT_IMAGE_SIZE) + 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE) + 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE), int(d % OUT_IMAGE_SIZE) - 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE) + 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE) - 1][0:2])
-        print(i, j, src_pix_map[int(d // OUT_IMAGE_SIZE) - 1, int(d % OUT_IMAGE_SIZE)][0:2])
-        print('-----------')
+            x,
+            y][0:2]
 plt.imshow(im)
 plt.show()
