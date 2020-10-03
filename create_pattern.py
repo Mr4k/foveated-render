@@ -21,8 +21,8 @@ NUM_PIXELS_TO_DRAW = OUT_IMAGE_SIZE * OUT_IMAGE_SIZE
 rng = default_rng(10)
 # * np.array([50, 50 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH])
 vals = np.concatenate((
-    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.array([100, 100 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH]),
-    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.array([50, 50 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH])
+    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.reshape(np.array([120, 120 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH]), (2, 1)),
+    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.reshape(np.array([50, 50 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH]), (2, 1))
 ), axis=1)
 
 vals[0] += IN_IMAGE_WIDTH / 2
