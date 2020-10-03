@@ -4,16 +4,35 @@
         uniform float time;
         const vec2 iResolution = vec2(512, 228);
         const highp uvec2 iIntermediateResolution = uvec2(128, 128);
-        uniform highp usampler2D dstMap;
+        uniform highp usampler2D dstMap1;
+        uniform highp usampler2D dstMap2;
+        uniform highp usampler2D dstMap3;
+        uniform highp usampler2D dstMap4;
         uniform highp sampler2D intermediate;
 
         void main()	{
-            highp uvec3 bitParts = texture(dstMap, gl_FragCoord.xy / iResolution).xyz;
-            highp uint x = bitParts.b;
-            highp uint y = bitParts.g;
-            highp ivec2 coords = ivec2(int(y), 127 - int(x));
+            highp uvec3 bitParts = texture(dstMap1, gl_FragCoord.xy / iResolution).xyz;
+            highp ivec2 coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
+            float a = 0.0;
+            if (gl_FragCoord.x / iResolution.x > 0.5) {
+                a = 1.0;
+            }
+            gl_FragColor = texelFetch(intermediate, coords, 0)* max(float(bitParts.r)/255.0, a);
             
-            gl_FragColor = texelFetch(intermediate, coords, 0);
+            if (a < 0.5) {
+                bitParts = texture(dstMap2, gl_FragCoord.xy / iResolution).xyz;
+                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
+                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
+
+                bitParts = texture(dstMap3, gl_FragCoord.xy / iResolution).xyz;
+                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
+                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
+
+                bitParts = texture(dstMap4, gl_FragCoord.xy / iResolution).xyz;
+                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
+                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
+            }
+            
             //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);
         }
     </script>
@@ -32,8 +51,9 @@
 
         /*void main()	{
             vec2 fragCoord = texture(srcMap, gl_FragCoord.xy / iIntResolution).zy * iResolution;
-            float x = mod(time + fragCoord.x, 20.) < 10. ? 1. : 0.;
-            float y = mod(time + fragCoord.y, 20.) < 10. ? 1. : 0.;
+            //vec2 fragCoord = gl_FragCoord.xy;
+            float x = mod(time * 50.0 + fragCoord.x, 20.) < 10. ? 1. : 0.;
+            float y = mod(time * 50.0 + fragCoord.y, 20.) < 10. ? 1. : 0.;
             gl_FragColor = vec4(vec3(min(x, y)), 1.);
         }*/
 
@@ -211,14 +231,34 @@
         srcMapTex.minFilter = THREE.NearestFilter;
         srcMapTex.magFilter = THREE.NearestFilter;
 
-        const dstMapTex = THREE.ImageUtils.loadTexture( "dst_map.png", undefined, () => { 
-            dstMapTex.minFilter = THREE.NearestFilter;
-            dstMapTex.magFilter = THREE.NearestFilter;
-            dstMapTex.internalFormat = "RGB8UI";
-            dstMapTex.format = THREE.RGBIntegerFormat;
-            dstMapTex.needsUpdate = true;
+        const dstMapTex1 = THREE.ImageUtils.loadTexture( "dst_map_1.png", undefined, () => { 
+            dstMapTex1.minFilter = THREE.NearestFilter;
+            dstMapTex1.magFilter = THREE.NearestFilter;
+            dstMapTex1.internalFormat = "RGB8UI";
+            dstMapTex1.format = THREE.RGBIntegerFormat;
+            dstMapTex1.needsUpdate = true;
         });
-        console.log(dstMapTex.format, dstMapTex.type, THREE.RGBAFormat, THREE.UnsignedByteType)
+        const dstMapTex2 = THREE.ImageUtils.loadTexture( "dst_map_2.png", undefined, () => { 
+            dstMapTex2.minFilter = THREE.NearestFilter;
+            dstMapTex2.magFilter = THREE.NearestFilter;
+            dstMapTex2.internalFormat = "RGB8UI";
+            dstMapTex2.format = THREE.RGBIntegerFormat;
+            dstMapTex2.needsUpdate = true;
+        });
+        const dstMapTex3 = THREE.ImageUtils.loadTexture( "dst_map_3.png", undefined, () => { 
+            dstMapTex3.minFilter = THREE.NearestFilter;
+            dstMapTex3.magFilter = THREE.NearestFilter;
+            dstMapTex3.internalFormat = "RGB8UI";
+            dstMapTex3.format = THREE.RGBIntegerFormat;
+            dstMapTex3.needsUpdate = true;
+        });
+        const dstMapTex4 = THREE.ImageUtils.loadTexture( "dst_map_4.png", undefined, () => { 
+            dstMapTex4.minFilter = THREE.NearestFilter;
+            dstMapTex4.magFilter = THREE.NearestFilter;
+            dstMapTex4.internalFormat = "RGB8UI";
+            dstMapTex4.format = THREE.RGBIntegerFormat;
+            dstMapTex4.needsUpdate = true;
+        });
         //dstMapTex.type = THREE.UnsignedIntType;
 
         /*
@@ -230,7 +270,10 @@
         var uniforms = {
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
-            dstMap: { type: "t", value: dstMapTex },
+            dstMap1: { type: "t", value: dstMapTex1 },
+            dstMap2: { type: "t", value: dstMapTex2 },
+            dstMap3: { type: "t", value: dstMapTex3 },
+            dstMap4: { type: "t", value: dstMapTex4 },
             intermediate: { type: "t", value: renderTarget.texture },
         };
 

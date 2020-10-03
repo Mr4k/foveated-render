@@ -21,7 +21,7 @@ NUM_PIXELS_TO_DRAW = OUT_IMAGE_SIZE * OUT_IMAGE_SIZE
 rng = default_rng(10)
 vals = rng.standard_normal((2, NUM_PIXELS_TO_DRAW))
 
-x_scale = 100
+x_scale = 120
 vals[0] *= x_scale
 vals[1] *= x_scale * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH
 vals[0] += IN_IMAGE_WIDTH / 2
@@ -48,6 +48,9 @@ ys = np.tile(ys, IN_IMAGE_WIDTH)
 source_pixels = np.column_stack((xs, ys))
 
 def create_src_map(name):
+    vals[0] /= IN_IMAGE_WIDTH
+    vals[1] /= IN_IMAGE_HEIGHT
+
     src_pix_map = np.reshape(np.swapaxes(vals, 0, 1), (OUT_IMAGE_SIZE, OUT_IMAGE_SIZE, -1))
     src_pix_map = np.dstack((src_pix_map, np.zeros((OUT_IMAGE_SIZE, OUT_IMAGE_SIZE))))
 
@@ -73,9 +76,6 @@ def create_dst_map_from_indexes(name, indexes, weights):
     dst_pix_map = np.dstack((channel1, channel2, channel3))
     dst_pix_map = np.swapaxes(dst_pix_map, 0, 1)
     print(dst_pix_map)
-
-    vals[0] /= IN_IMAGE_WIDTH
-    vals[1] /= IN_IMAGE_HEIGHT
 
     plt.imshow(dst_pix_map)
     plt.show()
@@ -110,18 +110,23 @@ def test_reconstruction(src_map_name, dst_map_names):
     plt.imshow(im)
     plt.show()
 
-distances, indexes = kdt.query(source_pixels, k = 2)
+distances, indexes = kdt.query(source_pixels, k = 4)
 
 create_src_map('src_map.png')
 
 # there has to be a better numpy way of doing this...
-normalizing_consts = distances.sum(axis=1)
+inverted_d = 1.0/distances
+normalizing_consts = inverted_d.sum(axis=1)
 weights = np.array([
-    distances[:, 0] / normalizing_consts,
-    distances[:, 1] / normalizing_consts
+    inverted_d[:, 0] / normalizing_consts,
+    inverted_d[:, 1] / normalizing_consts,
+    inverted_d[:, 2] / normalizing_consts,
+    inverted_d[:, 3] / normalizing_consts
 ])
 
 create_dst_map_from_indexes('dst_map_1.png', indexes[:, 0], weights[0, :])
 create_dst_map_from_indexes('dst_map_2.png', indexes[:, 1], weights[1, :])
+create_dst_map_from_indexes('dst_map_3.png', indexes[:, 2], weights[2, :])
+create_dst_map_from_indexes('dst_map_4.png', indexes[:, 3], weights[3, :])
 
-test_reconstruction('src_map.png', ['dst_map_1.png', 'dst_map_2.png'])
+test_reconstruction('src_map.png', ['dst_map_1.png', 'dst_map_2.png', 'dst_map_3.png', 'dst_map_4.png'])
