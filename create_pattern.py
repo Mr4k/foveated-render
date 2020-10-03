@@ -19,11 +19,12 @@ OUT_IMAGE_SIZE = 128
 NUM_PIXELS_TO_DRAW = OUT_IMAGE_SIZE * OUT_IMAGE_SIZE
 
 rng = default_rng(10)
-vals = rng.standard_normal((2, NUM_PIXELS_TO_DRAW))
+# * np.array([50, 50 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH])
+vals = np.concatenate((
+    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.array([100, 100 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH]),
+    rng.standard_normal((2, int(NUM_PIXELS_TO_DRAW / 2))) * np.array([50, 50 * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH])
+), axis=1)
 
-x_scale = 120
-vals[0] *= x_scale
-vals[1] *= x_scale * IN_IMAGE_HEIGHT / IN_IMAGE_WIDTH
 vals[0] += IN_IMAGE_WIDTH / 2
 vals[1] += IN_IMAGE_HEIGHT / 2
 
