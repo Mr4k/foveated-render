@@ -1,10 +1,26 @@
 <!-- Code stolen from https://iwearshorts.com/blog/simple-shader-with-threejs/ !-->
 <head>
+    <script id="stencilFragmentShader" type="x-shader/x-fragment">
+        uniform float time;
+        const vec2 iResolution = vec2(420, 236);
+        uniform highp sampler2D stencilTexture;
+
+        void main()	{
+            vec4 color = texture(stencilTexture, gl_FragCoord.xy / iResolution);
+            // warning discard is slow
+            // do not use this shader every frame
+            if (color.r < 0.5) {
+                discard;
+            } else {
+                gl_FragColor = color;
+            }
+        }
+    </script>
     <script id="fragmentShader" type="x-shader/x-fragment">
         uniform float time;
-        const vec2 iResolution = vec2(512, 228);
+        const vec2 iResolution = vec2(420, 236);
         
-        const highp uvec2 iIntermediateResolution = uvec2(128, 128);
+        uniform vec2 focalOffset;
         uniform highp usampler2D dstMap1;
         uniform highp usampler2D dstMap2;
         uniform highp usampler2D dstMap3;
@@ -12,29 +28,22 @@
         uniform highp sampler2D intermediate;
 
         void main()	{
-            highp uvec3 bitParts = texture(dstMap1, gl_FragCoord.xy / iResolution).xyz;
-            highp ivec2 coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
-            float a = 0.0;
-            if (gl_FragCoord.x / iResolution.x > 0.5) {
-                a = 1.0;
-            }
-            gl_FragColor = texelFetch(intermediate, coords, 0)* max(float(bitParts.r)/255.0, a);
+            highp uvec4 bitParts = texture(dstMap1, gl_FragCoord.xy / iResolution);
+            ivec2 coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
+            gl_FragColor = texelFetch(intermediate, coords, 0);// * float(bitParts.a)/255.0;
             
-            if (a < 0.5) {
-                bitParts = texture(dstMap2, gl_FragCoord.xy / iResolution).xyz;
-                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
-                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
+            /*bitParts = texture(dstMap2, gl_FragCoord.xy / iResolution);
+            coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
+            gl_FragColor += texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
 
-                bitParts = texture(dstMap3, gl_FragCoord.xy / iResolution).xyz;
-                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
-                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
+            bitParts = texture(dstMap3, gl_FragCoord.xy / iResolution);
+            coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
+            gl_FragColor += texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
 
-                bitParts = texture(dstMap4, gl_FragCoord.xy / iResolution).xyz;
-                coords = ivec2(int(bitParts.g), 127 - int(bitParts.b));
-                gl_FragColor += texelFetch(intermediate, coords, 0)* float(bitParts.r)/255.0;
-            }
-            
-            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);
+            bitParts = texture(dstMap4, gl_FragCoord.xy / iResolution);
+            coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
+            gl_FragColor += texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
+            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);*/
         }
     </script>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -46,9 +55,8 @@
     </script>
     <script id="intfragmentShader" type="x-shader/x-fragment">
         uniform float time;
-        const vec2 iIntResolution = vec2(128, 128);
         const vec2 iResolution = vec2(512, 228);
-        uniform sampler2D srcMap;
+        uniform vec2 focalOffset;
         uniform int iFrame;
 
         /*void main()	{
@@ -490,8 +498,7 @@
 
         void main()
         {
-            vec2 lookup = texture(srcMap, gl_FragCoord.xy / iIntResolution).zy;
-            vec2 fragCoord = (1.0-lookup) * iResolution;
+            vec2 fragCoord = gl_FragCoord.xy;
             vec3 tot = vec3(0.0);
         #if AA>1
             for( int m=ZERO; m<AA; m++ )
@@ -564,7 +571,6 @@
 </head>
 
 <body>
-    <text id='fpsMeter'>fps: </text>
     <script type="module">
         // Find the latest version by visiting https://unpkg.com/three. The URL will
         // redirect to the newest stable release.
@@ -578,40 +584,40 @@
         var camera = new THREE.Camera();
         camera.position.z = 1;
 
-        const renderTarget = new THREE.WebGLRenderTarget(128, 128);
+        const renderTarget = new THREE.WebGLRenderTarget(420, 236, { stencilBuffer: true });
         renderTarget.texture.minFilter = THREE.NearestFilter;
         renderTarget.texture.magFilter = THREE.NearestFilter;
 
-        const srcMapTex = THREE.ImageUtils.loadTexture( "src_map.png" );
-        srcMapTex.minFilter = THREE.NearestFilter;
-        srcMapTex.magFilter = THREE.NearestFilter;
+        const maskTexture = THREE.ImageUtils.loadTexture( "mask.png" );
+        maskTexture.minFilter = THREE.NearestFilter;
+        maskTexture.magFilter = THREE.NearestFilter;
 
         const dstMapTex1 = THREE.ImageUtils.loadTexture( "dst_map_1.png", undefined, () => { 
             dstMapTex1.minFilter = THREE.NearestFilter;
             dstMapTex1.magFilter = THREE.NearestFilter;
-            dstMapTex1.internalFormat = "RGB8UI";
-            dstMapTex1.format = THREE.RGBIntegerFormat;
+            dstMapTex1.internalFormat = "RGBA8UI";
+            dstMapTex1.format = THREE.RGBAIntegerFormat;
             dstMapTex1.needsUpdate = true;
         });
         const dstMapTex2 = THREE.ImageUtils.loadTexture( "dst_map_2.png", undefined, () => { 
             dstMapTex2.minFilter = THREE.NearestFilter;
             dstMapTex2.magFilter = THREE.NearestFilter;
-            dstMapTex2.internalFormat = "RGB8UI";
-            dstMapTex2.format = THREE.RGBIntegerFormat;
+            dstMapTex2.internalFormat = "RGBA8UI";
+            dstMapTex2.format = THREE.RGBAIntegerFormat;
             dstMapTex2.needsUpdate = true;
         });
         const dstMapTex3 = THREE.ImageUtils.loadTexture( "dst_map_3.png", undefined, () => { 
             dstMapTex3.minFilter = THREE.NearestFilter;
             dstMapTex3.magFilter = THREE.NearestFilter;
-            dstMapTex3.internalFormat = "RGB8UI";
-            dstMapTex3.format = THREE.RGBIntegerFormat;
+            dstMapTex3.internalFormat = "RGBA8UI";
+            dstMapTex3.format = THREE.RGBAIntegerFormat;
             dstMapTex3.needsUpdate = true;
         });
         const dstMapTex4 = THREE.ImageUtils.loadTexture( "dst_map_4.png", undefined, () => { 
             dstMapTex4.minFilter = THREE.NearestFilter;
             dstMapTex4.magFilter = THREE.NearestFilter;
-            dstMapTex4.internalFormat = "RGB8UI";
-            dstMapTex4.format = THREE.RGBIntegerFormat;
+            dstMapTex4.internalFormat = "RGBA8UI";
+            dstMapTex4.format = THREE.RGBAIntegerFormat;
             dstMapTex4.needsUpdate = true;
         });
         //dstMapTex.type = THREE.UnsignedIntType;
@@ -625,6 +631,7 @@
         var uniforms = {
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
+            focalOffset: { type: "v2", value: new THREE.Vector2(0, 0) },
             dstMap1: { type: "t", value: dstMapTex1 },
             dstMap2: { type: "t", value: dstMapTex2 },
             dstMap3: { type: "t", value: dstMapTex3 },
@@ -642,6 +649,27 @@
         scene.add( mesh );
 
         /*
+        * Set up the stencil buffer scene
+        */
+
+        var stScene = new THREE.Scene();
+
+        var stUniforms = {
+            time: { type: "f", value: 0 },
+            resolution: { type: "v2", value: new THREE.Vector2() },
+            stencilTexture: { type: "t", value: maskTexture },
+        };
+
+        var stMaterial = new THREE.ShaderMaterial( {
+            uniforms: stUniforms,
+            vertexShader: document.getElementById( 'vertexShader' ).innerText,
+            fragmentShader: document.getElementById( 'stencilFragmentShader' ).innerText
+        });
+
+        var stMesh = new THREE.Mesh( new THREE.PlaneGeometry( 2, 2 ), stMaterial );
+        stScene.add( stMesh );
+
+        /*
         * Set up the intermediate render target
         */
 
@@ -650,7 +678,6 @@
         var rtUniforms = {
             time: { type: "f", value: 0 },
             resolution: { type: "v2", value: new THREE.Vector2() },
-            srcMap: { type: "t", value: srcMapTex },
             iFrame: { type: "i", value: 0 },
         };
 
@@ -664,8 +691,11 @@
         rtScene.add( rtMesh );
 
         var renderer = new THREE.WebGLRenderer({});
-        renderer.setSize( 128, 128 );
+        renderer.setSize( 420, 236 );
+        renderer.autoClearStencil = false;
         container.appendChild(renderer.domElement);
+
+        var gl = renderer.context;
 
         uniforms.resolution.value.x = parent.clientWidth;
         uniforms.resolution.value.y = parent.clientHeight;
@@ -687,18 +717,38 @@
             rtUniforms.time.value = elapsedSeconds;
             rtUniforms.iFrame.value += rtUniforms.iFrame.value;
 
-            renderer.setRenderTarget(renderTarget);
-            renderer.setSize( 128, 128 );
-            renderer.render( rtScene, camera );
-            renderer.setRenderTarget(null);
+            //renderer.setRenderTarget(renderTarget);
+            renderer.setClearColor( 0xffffff, 1);
+            renderer.clear(true, true, true);
+            gl.enable(gl.STENCIL_TEST);
+            // the third argument here allows us to write to the stencil buffer
+            gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
 
-            renderer.setSize( 512, 228 );
-            renderer.render( scene, camera );
+            renderer.clear(); //<-- works without this too
+
+            gl.stencilFunc(gl.ALWAYS, 1, 0xFF);
+            gl.stencilMask(0xFF);
+            renderer.render(stScene, camera);
+
+            gl.stencilFunc(gl.EQUAL, 1, 0xFF);
+            gl.stencilMask(0x00);
+
+            gl.colorMask(true, true, true, true);
+            renderer.render( rtScene, camera );
+
+            gl.stencilMask(0xFF);
+            gl.disable(gl.STENCIL_TEST);
+            //renderer.render(stScene, camera);
+            //renderer.setRenderTarget(null);
+
+            //renderer.render( scene, camera );
+            //renderer.render( rtScene, camera );
+
             var now = new Date().getTime();
             //console.log(1000 / (now - lastTime));
             num += 1;
             tot += (1000/(now - lastTime))
-            document.getElementById('fpsMeter').innerHTML = "fps: " + (tot/num)
+            //document.getElementById('fpsMeter').innerHTML = "fps: " + (tot/num)
             lastTime = now;
         }
     </script>
