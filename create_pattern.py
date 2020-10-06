@@ -41,7 +41,7 @@ def draw_from_gaussian_distribution_without_repeats(rng, mean, variance, already
     return coords.astype(float)
 
 center = np.array([IN_IMAGE_WIDTH / 2, IN_IMAGE_HEIGHT / 2])
-pixel_budget = IN_IMAGE_WIDTH * IN_IMAGE_HEIGHT / 5
+pixel_budget = IN_IMAGE_WIDTH * IN_IMAGE_HEIGHT / 10
 
 vals = []
 already_filled = np.zeros((IN_IMAGE_WIDTH, IN_IMAGE_HEIGHT))
