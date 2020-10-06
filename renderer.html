@@ -30,9 +30,9 @@
         void main()	{
             highp uvec4 bitParts = texture(dstMap1, gl_FragCoord.xy / iResolution);
             ivec2 coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
-            gl_FragColor = texelFetch(intermediate, coords, 0);// * float(bitParts.a)/255.0;
+            gl_FragColor = texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
             
-            /*bitParts = texture(dstMap2, gl_FragCoord.xy / iResolution);
+            bitParts = texture(dstMap2, gl_FragCoord.xy / iResolution);
             coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
             gl_FragColor += texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
 
@@ -43,7 +43,7 @@
             bitParts = texture(dstMap4, gl_FragCoord.xy / iResolution);
             coords = ivec2(int(bitParts.r | (bitParts.g << 8)), int(bitParts.z));
             gl_FragColor += texelFetch(intermediate, coords, 0) * float(bitParts.a)/255.0;
-            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);*/
+            //gl_FragColor = texture(intermediate, gl_FragCoord.xy / iResolution);
         }
     </script>
     <script id="vertexShader" type="x-shader/x-vertex">
@@ -717,7 +717,7 @@
             rtUniforms.time.value = elapsedSeconds;
             rtUniforms.iFrame.value += rtUniforms.iFrame.value;
 
-            //renderer.setRenderTarget(renderTarget);
+            renderer.setRenderTarget(renderTarget);
             renderer.setClearColor( 0xffffff, 1);
             renderer.clear(true, true, true);
             gl.enable(gl.STENCIL_TEST);
@@ -739,9 +739,9 @@
             gl.stencilMask(0xFF);
             gl.disable(gl.STENCIL_TEST);
             //renderer.render(stScene, camera);
-            //renderer.setRenderTarget(null);
+            renderer.setRenderTarget(null);
 
-            //renderer.render( scene, camera );
+            renderer.render( scene, camera );
             //renderer.render( rtScene, camera );
 
             var now = new Date().getTime();
